@@ -1,66 +1,57 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
+  FlatList,
+  TextInput,
+  Button,
+  useColorScheme,
 } from 'react-native';
+import axios from 'axios';
+import { Colors } from 'react-native/Libraries/NewAppScreen'; // Import Colors
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+type Thing = {
+  id: number;
+  name: string;
+};
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
-function App(): React.JSX.Element {
+const App = (): React.JSX.Element => {
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
+
+  const [things, setThings] = useState<Thing[]>([]);
+  const [newThing, setNewThing] = useState('');
+
+  const fetchThings = async () => {
+    try {
+      const response = await axios.get('http://10.0.2.2:8000/api/things');
+      setThings(response.data);
+    } catch (error) {
+      console.error('Error fetching things:', error);
+    }
+  };
+
+  const addThing = async () => {
+    try {
+      await axios.post('http://10.0.2.2:8000/api/things', {
+        name: newThing,
+      });
+      setNewThing('');
+      fetchThings();
+    } catch (error) {
+      console.error('Error adding thing:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchThings();
+  }, []);
 
   return (
     <SafeAreaView style={backgroundStyle}>
@@ -68,50 +59,53 @@ function App(): React.JSX.Element {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundStyle.backgroundColor}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
+      <FlatList
+        ListHeaderComponent={
+          <View style={styles.headerContainer}>
+            <Text style={styles.header}>Things List</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter new thing"
+              value={newThing}
+              onChangeText={setNewThing}
+            />
+            <Button title="Add Thing" onPress={addThing} />
+          </View>
+        }
+        data={things}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.listItem}>
+            <Text>{item.name}</Text>
+          </View>
+        )}
+        contentContainerStyle={styles.listContainer}
+      />
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  headerContainer: {
+    padding: 20,
   },
-  sectionTitle: {
+  header: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    marginBottom: 20,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  input: {
+    borderWidth: 1,
+    padding: 10,
+    marginBottom: 20,
+    borderRadius: 5,
   },
-  highlight: {
-    fontWeight: '700',
+  listContainer: {
+    paddingBottom: 20,
+  },
+  listItem: {
+    padding: 15,
+    borderBottomWidth: 1,
   },
 });
 
